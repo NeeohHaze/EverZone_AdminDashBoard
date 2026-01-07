@@ -27,11 +27,6 @@ function Sidebar() {
         <nav aria-label="Sidebar" className="flex-1">
           <ul className="space-y-1">
             <li>
-              <Link to="/" className={linkClass("/")}>
-                Dashboard
-              </Link>
-            </li>
-            <li>
               <Link to="/Home" className={linkClass("/Home")}>
                 Home
               </Link>
