@@ -401,7 +401,7 @@ function Home() {
                 </div>
 
                 <div
-                  className="flex items-center rounded-full bg-[#0b3b60] p-1"
+                  className="flex items-center rounded-full bg-[#2c6480] p-1"
                   role="group"
                   aria-label="Filter inquiries"
                 >
@@ -417,7 +417,7 @@ function Home() {
                           "min-w-[72px] rounded-full px-4 py-1.5 text-xs font-semibold transition",
                           isActive
                             ? "bg-[#7ac943] text-white"
-                            : "bg-transparent text-white/80 hover:text-white",
+                            : "bg-[transparent] text-white/80 hover:text-white",
                         ].join(" ")}
                       >
                         {value}
@@ -531,7 +531,7 @@ function Home() {
                     </button>
 
                     <div
-                      className="flex items-center rounded-xl bg-[#0b3b60] p-1"
+                      className="flex items-center rounded-xl bg-[#2c6480] p-1"
                       role="group"
                       aria-label="Pagination"
                     >

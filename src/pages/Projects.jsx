@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useCategoriesData, useProjectsData } from "../hooks/useApiData";
 
 const PhotoIcon = ({ className = "h-5 w-5" }) => (
   <svg
@@ -18,194 +19,64 @@ const PhotoIcon = ({ className = "h-5 w-5" }) => (
   </svg>
 );
 
-const projectsMock = [
-  {
-    id: "project-1",
-    title: "Rangsit Guest House",
-    subtitle: "Residential 01",
-    category: "Residential",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-2",
-    title: "Rangsit Guest House",
-    subtitle: "Residential 02",
-    category: "Residential",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-3",
-    title: "Rangsit Guest House",
-    subtitle: "Commercial 01",
-    category: "Commercial",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-4",
-    title: "Rangsit Guest House",
-    subtitle: "Commercial 02",
-    category: "Commercial",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-5",
-    title: "Rangsit Guest House",
-    subtitle: "Industrial 01",
-    category: "Industrial",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-6",
-    title: "Rangsit Guest House",
-    subtitle: "Industrial 02",
-    category: "Industrial",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-7",
-    title: "Rangsit Guest House",
-    subtitle: "Residential 03",
-    category: "Residential",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-8",
-    title: "Rangsit Guest House",
-    subtitle: "Residential 04",
-    category: "Residential",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-9",
-    title: "Rangsit Guest House",
-    subtitle: "Commercial 03",
-    category: "Commercial",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-10",
-    title: "Rangsit Guest House",
-    subtitle: "Commercial 04",
-    category: "Commercial",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-11",
-    title: "Rangsit Guest House",
-    subtitle: "Industrial 03",
-    category: "Industrial",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-  {
-    id: "project-12",
-    title: "Rangsit Guest House",
-    subtitle: "Industrial 04",
-    category: "Industrial",
-    ownerName: "Enzo Hein",
-    location: "DEF block, Ward 5, 6/6, Pathum Thani, Lak Hok, 12000",
-    projectDuration: "7 Jan 2019 to 8 May 2020",
-    area: "100 square meters",
-    description:
-      "This project consisted of the design and construction of a building incorporating reinforced concrete structural works and complete MEP systems. The project was delivered with a focus on safety and quality control. The scope also included strict adherence to relevant codes and standards to ensure long-term performance and operational efficiency.",
-    details: ["Details-", "Details-", "Details-"],
-    scope: "Scope- text text texts text",
-  },
-];
-
 function Projects() {
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
   const [files, setFiles] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [actionLoading, setActionLoading] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [editImages, setEditImages] = useState([]);
 
+  const [newDraft, setNewDraft] = useState({
+    title: "",
+    name: "",
+    category_id: "",
+    location: "",
+    duration: "",
+    area: "",
+    description: "",
+    image: "",
+  });
+
+  const {
+    projects,
+    error,
+    fetchProjects,
+    createProject,
+    updateProject,
+    deleteProject,
+  } = useProjectsData(true);
+
+  const {
+    categories,
+    error: categoriesError,
+  } = useCategoriesData(true);
+
   const PROJECT_IMAGE_URL = "/guesthouse.jpg";
 
-  const categoryTabs = useMemo(() => ["All", "Residential", "Commercial", "Industrial"], []);
+  const normalizeRemoteImage = (value) =>
+    typeof value === "string" && /^https?:\/\//i.test(value) ? value : null;
+
+  useEffect(() => {
+    if (newDraft.category_id) return;
+    const firstId = categories?.[0]?.id;
+    if (!firstId) return;
+    setNewDraft((prev) => ({ ...prev, category_id: String(firstId) }));
+  }, [categories, newDraft.category_id]);
+
+  const categoryTabs = useMemo(() => {
+    const names = (categories ?? [])
+      .map((c) => c?.name)
+      .filter(Boolean);
+    return ["All", ...names];
+  }, [categories]);
 
   const showcaseProjects = useMemo(() => {
-    if (activeCategory === "All") return projectsMock;
-    return projectsMock.filter((p) => p.category === activeCategory);
-  }, [activeCategory]);
+    if (activeCategory === "All") return projects;
+    return (projects ?? []).filter((p) => p?.category_name === activeCategory);
+  }, [activeCategory, projects]);
 
   const fileSummary = useMemo(() => {
     if (files.length === 0) return "";
@@ -234,8 +105,8 @@ function Projects() {
 
   const activeProject = useMemo(() => {
     if (!activeProjectId) return null;
-    return projectsMock.find((p) => p.id === activeProjectId) ?? null;
-  }, [activeProjectId]);
+    return (projects ?? []).find((p) => p.id === activeProjectId) ?? null;
+  }, [activeProjectId, projects]);
 
   const closeEditProject = () => {
     setActiveProjectId(null);
@@ -247,14 +118,16 @@ function Projects() {
     setActiveProjectId(project.id);
     setEditDraft({
       title: project.title ?? "",
-      ownerName: project.ownerName ?? "",
-      category: project.category ?? "Residential",
+      name: project.name ?? "",
+      category_id: project.category_id ? String(project.category_id) : "",
       location: project.location ?? "",
-      projectDuration: project.projectDuration ?? "",
+      duration: project.duration ?? "",
       area: project.area ?? "",
       description: project.description ?? "",
+      image: normalizeRemoteImage(project.image) ?? "",
     });
-    setEditImages([PROJECT_IMAGE_URL, PROJECT_IMAGE_URL, PROJECT_IMAGE_URL, PROJECT_IMAGE_URL]);
+    const seed = project.image || PROJECT_IMAGE_URL;
+    setEditImages([seed, seed, seed, seed]);
   };
 
   const openEditFilePicker = () => {
@@ -281,6 +154,98 @@ function Projects() {
     addEditImages(e.target.files);
   };
 
+  const resetCreateForm = () => {
+    setFiles([]);
+    setNewDraft((prev) => ({
+      ...prev,
+      title: "",
+      name: "",
+      location: "",
+      duration: "",
+      area: "",
+      description: "",
+      image: "",
+    }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const canCreate =
+    newDraft.title.trim() &&
+    newDraft.name.trim() &&
+    String(newDraft.category_id || "").trim() &&
+    newDraft.description.trim();
+
+  const handleCreate = async () => {
+    if (!canCreate) return;
+    const categoryId = Number.parseInt(newDraft.category_id, 10);
+    if (!Number.isFinite(categoryId) || categoryId <= 0) return;
+
+    setActionLoading(true);
+    try {
+      const result = await createProject({
+        name: newDraft.name.trim(),
+        title: newDraft.title.trim(),
+        category_id: categoryId,
+        location: newDraft.location.trim() || null,
+        duration: newDraft.duration.trim() || null,
+        area: newDraft.area.trim() || null,
+        description: newDraft.description.trim(),
+        image: normalizeRemoteImage(newDraft.image.trim()),
+      });
+
+      if (result?.success) {
+        resetCreateForm();
+        await fetchProjects();
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!activeProjectId || !editDraft) return;
+    const categoryId = Number.parseInt(editDraft.category_id, 10);
+    if (!Number.isFinite(categoryId) || categoryId <= 0) return;
+
+    setActionLoading(true);
+    try {
+      const result = await updateProject(activeProjectId, {
+        name: (editDraft.name ?? "").trim(),
+        title: (editDraft.title ?? "").trim(),
+        category_id: categoryId,
+        location: (editDraft.location ?? "").trim() || null,
+        duration: (editDraft.duration ?? "").trim() || null,
+        area: (editDraft.area ?? "").trim() || null,
+        description: (editDraft.description ?? "").trim(),
+        image: normalizeRemoteImage((editDraft.image ?? "").trim()),
+      });
+
+      if (result?.success) {
+        await fetchProjects();
+        closeEditProject();
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!activeProjectId) return;
+    const ok = window.confirm("Delete this project?");
+    if (!ok) return;
+
+    setActionLoading(true);
+    try {
+      const result = await deleteProject(activeProjectId);
+      if (result?.success) {
+        await fetchProjects();
+        closeEditProject();
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   return (
     <div className="relative left-1/2 right-1/2 w-screen -ml-[50vw] -mr-[50vw] min-h-screen bg-[#2c6480] py-8">
       <div className="mx-auto w-full max-w-[1600px] px-2 sm:px-4 lg:px-6">
@@ -303,6 +268,8 @@ function Projects() {
                 <input
                   type="text"
                   placeholder="Enter title of the project"
+                  value={newDraft.title}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, title: e.target.value }))}
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
@@ -312,6 +279,8 @@ function Projects() {
                 <input
                   type="text"
                   placeholder="Enter owner's name"
+                  value={newDraft.name}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, name: e.target.value }))}
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
@@ -319,13 +288,19 @@ function Projects() {
               <div>
                 <label className="text-sm font-semibold text-slate-600">Category</label>
                 <select
-                  defaultValue="Residential"
+                  value={newDraft.category_id}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, category_id: e.target.value }))}
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 >
-                  <option>Residential</option>
-                  <option>Commercial</option>
-                  <option>Industrial</option>
-                  <option>Mixed</option>
+                  {(categories ?? []).length ? (
+                    (categories ?? []).map((c) => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No categories</option>
+                  )}
                 </select>
               </div>
 
@@ -334,6 +309,8 @@ function Projects() {
                 <input
                   type="text"
                   placeholder="Enter project location"
+                  value={newDraft.location}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, location: e.target.value }))}
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
@@ -343,6 +320,8 @@ function Projects() {
                 <input
                   type="text"
                   placeholder="e.g. 1 Jan 2025 to 31 Dec 2025"
+                  value={newDraft.duration}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, duration: e.target.value }))}
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
@@ -352,6 +331,8 @@ function Projects() {
                 <input
                   type="text"
                   placeholder="e.g. 500 square meters"
+                  value={newDraft.area}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, area: e.target.value }))}
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
@@ -361,9 +342,28 @@ function Projects() {
                 <textarea
                   rows={4}
                   placeholder="Enter description of the project"
+                  value={newDraft.description}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, description: e.target.value }))}
                   className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-sm font-semibold text-slate-600">Project Image URL (optional)</label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/image.jpg"
+                  value={newDraft.image}
+                  onChange={(e) => setNewDraft((prev) => ({ ...prev, image: e.target.value }))}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
+                />
+              </div>
+
+              {(error || categoriesError) ? (
+                <div className="sm:col-span-2 rounded-md bg-red-50 p-4">
+                  <div className="text-sm text-red-700">{error || categoriesError}</div>
+                </div>
+              ) : null}
             </div>
 
             {/* Right: upload */}
@@ -413,10 +413,12 @@ function Projects() {
 
               <button
                 type="button"
+                onClick={handleCreate}
+                disabled={actionLoading || !canCreate || !(categories ?? []).length}
                 className="flex w-full items-stretch overflow-hidden rounded-full border border-[#1f4f64] bg-[#2c6480] shadow-sm"
               >
                 <span className="flex-1 py-4 text-center text-base font-semibold text-white">
-                  Upload Project
+                  {actionLoading ? "Uploading..." : "Upload Project"}
                 </span>
                 <span className="grid w-16 place-items-center bg-[#7ac943] text-2xl font-semibold text-[#2c6480]">
                   ›
@@ -429,7 +431,7 @@ function Projects() {
             {/* Projects showcase / preview */}
             <section className="mt-10">
               <div className="flex items-baseline gap-3 text-slate-700">
-                <span className="text-4xl font-semibold tracking-tight">{projectsMock.length}</span>
+                <span className="text-4xl font-semibold tracking-tight">{projects.length}</span>
                 <span className="text-xl">Projects</span>
               </div>
 
@@ -461,7 +463,7 @@ function Projects() {
                   >
                     <div className="bg-slate-100">
                       <img
-                        src={PROJECT_IMAGE_URL}
+                        src={p.image || PROJECT_IMAGE_URL}
                         alt={p.title}
                         className="aspect-[4/3] w-full object-cover"
                         loading="lazy"
@@ -472,7 +474,7 @@ function Projects() {
                     <div className="flex items-center justify-between gap-4 px-6 py-5">
                       <div className="min-w-0">
                         <h3 className="truncate text-lg font-semibold text-slate-800">{p.title}</h3>
-                        <p className="mt-1 truncate text-sm text-slate-400">{p.subtitle}</p>
+                        <p className="mt-1 truncate text-sm text-slate-400">{p.name}</p>
                       </div>
                       <button
                         type="button"
@@ -599,9 +601,9 @@ function Projects() {
                           <label className="text-sm font-semibold text-slate-600">Owner Name</label>
                           <input
                             type="text"
-                            value={editDraft.ownerName}
+                            value={editDraft.name}
                             onChange={(e) =>
-                              setEditDraft((prev) => ({ ...prev, ownerName: e.target.value }))
+                              setEditDraft((prev) => ({ ...prev, name: e.target.value }))
                             }
                             className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                           />
@@ -610,16 +612,21 @@ function Projects() {
                         <div>
                           <label className="text-sm font-semibold text-slate-600">Category</label>
                           <select
-                            value={editDraft.category}
+                            value={editDraft.category_id}
                             onChange={(e) =>
-                              setEditDraft((prev) => ({ ...prev, category: e.target.value }))
+                              setEditDraft((prev) => ({ ...prev, category_id: e.target.value }))
                             }
                             className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                           >
-                            <option>Residential</option>
-                            <option>Commercial</option>
-                            <option>Industrial</option>
-                            <option>Mixed</option>
+                            {(categories ?? []).length ? (
+                              (categories ?? []).map((c) => (
+                                <option key={c.id} value={String(c.id)}>
+                                  {c.name}
+                                </option>
+                              ))
+                            ) : (
+                              <option value="">No categories</option>
+                            )}
                           </select>
                         </div>
 
@@ -639,9 +646,9 @@ function Projects() {
                           <label className="text-sm font-semibold text-slate-600">Project Duration</label>
                           <input
                             type="text"
-                            value={editDraft.projectDuration}
+                            value={editDraft.duration}
                             onChange={(e) =>
-                              setEditDraft((prev) => ({ ...prev, projectDuration: e.target.value }))
+                              setEditDraft((prev) => ({ ...prev, duration: e.target.value }))
                             }
                             className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                           />
@@ -670,6 +677,21 @@ function Projects() {
                             className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                           />
                         </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="text-sm font-semibold text-slate-600">
+                            Project Image URL (optional)
+                          </label>
+                          <input
+                            type="url"
+                            placeholder="https://example.com/image.jpg"
+                            value={editDraft.image}
+                            onChange={(e) =>
+                              setEditDraft((prev) => ({ ...prev, image: e.target.value }))
+                            }
+                            className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -677,6 +699,7 @@ function Projects() {
                       <button
                         type="button"
                         className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700"
+                        onClick={handleDelete}
                       >
                         Delete Project
                         <span className="text-slate-400" aria-hidden="true">
@@ -699,8 +722,10 @@ function Projects() {
                       <button
                         type="button"
                         className="rounded-full bg-[#2c6480] px-10 py-3 text-sm font-semibold text-white"
+                        onClick={handleSave}
+                        disabled={actionLoading}
                       >
-                        Save Changes
+                        {actionLoading ? "Saving..." : "Save Changes"}
                       </button>
                     </div>
                   </div>

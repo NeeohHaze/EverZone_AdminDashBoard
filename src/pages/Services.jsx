@@ -1,37 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-
-const servicesMock = [
-  {
-    id: "road-bridge",
-    title: "Road and Bridge Construction",
-    description:
-      "Road and bridge construction involves designing and building safe, durable transportation infrastructure that supports efficient travel and ensures longevity.",
-  },
-  {
-    id: "earth-works",
-    title: "Earth Works",
-    description:
-      "Site preparation, excavation, and grading services to create a stable foundation for infrastructure and construction projects.",
-  },
-  {
-    id: "building-construction",
-    title: "Building Construction",
-    description:
-      "Residential, commercial, and industrial construction delivered with quality materials, precise planning, and safety compliance.",
-  },
-  {
-    id: "steel-structure",
-    title: "Steel Structure Works",
-    description:
-      "Fabrication and installation of structural steel frameworks for long-lasting, high-performance builds.",
-  },
-  {
-    id: "interior-finish",
-    title: "Interior Fit-Out",
-    description:
-      "Premium interior finishes, space planning, and bespoke solutions tailored to business and residential needs.",
-  },
-];
+import { useServicesData } from "../hooks/useApiData";
 
 const PhotoIcon = ({ className = "h-5 w-5" }) => (
   <svg
@@ -55,9 +23,23 @@ function Services() {
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
   const [files, setFiles] = useState([]);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
   const [activeServiceId, setActiveServiceId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [editImages, setEditImages] = useState([]);
+
+  const {
+    services,
+    loading,
+    error,
+    fetchServices,
+    createService,
+    updateService,
+    deleteService,
+  } = useServicesData(true);
 
   const SERVICE_IMAGE_URL = "/services_placeholder.jpg";
 
@@ -74,6 +56,9 @@ function Services() {
   const openEditFilePicker = () => {
     editFileInputRef.current?.click();
   };
+
+  const normalizeRemoteImage = (value) =>
+    typeof value === "string" && /^https?:\/\//i.test(value) ? value : null;
 
   const addFiles = (fileList) => {
     const next = Array.from(fileList ?? []).filter((f) => f && f.type?.startsWith("image/"));
@@ -105,8 +90,8 @@ function Services() {
 
   const activeService = useMemo(() => {
     if (!activeServiceId) return null;
-    return servicesMock.find((s) => s.id === activeServiceId) ?? null;
-  }, [activeServiceId]);
+    return services.find((s) => s.id === activeServiceId) ?? null;
+  }, [activeServiceId, services]);
 
   const closeEditService = () => {
     setActiveServiceId(null);
@@ -124,8 +109,9 @@ function Services() {
     setEditDraft({
       title: service.title ?? "",
       description: service.description ?? "",
+      image: normalizeRemoteImage(service.image),
     });
-    setEditImages([SERVICE_IMAGE_URL]);
+    setEditImages([service.image || SERVICE_IMAGE_URL]);
   };
 
   const onEditDrop = (e) => {
@@ -135,6 +121,76 @@ function Services() {
 
   const onEditBrowse = (e) => {
     addEditImages(e.target.files);
+  };
+
+  const resetCreateForm = () => {
+    setFiles([]);
+    setNewTitle("");
+    setNewDescription("");
+    setNewImageUrl("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCreate = async () => {
+    const title = newTitle.trim();
+    const description = newDescription.trim();
+    if (!title || !description) return;
+
+    setActionLoading(true);
+    try {
+      const result = await createService({
+        title,
+        description,
+        image: normalizeRemoteImage(newImageUrl.trim()),
+      });
+
+      if (result?.success) {
+        resetCreateForm();
+        await fetchServices();
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!activeServiceId || !editDraft) return;
+    const title = (editDraft.title ?? "").trim();
+    const description = (editDraft.description ?? "").trim();
+    if (!title || !description) return;
+
+    setActionLoading(true);
+    try {
+      const result = await updateService(activeServiceId, {
+        title,
+        description,
+        image: editDraft.image ?? null,
+      });
+
+      if (result?.success) {
+        await fetchServices();
+        closeEditService();
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!activeServiceId) return;
+    const ok = window.confirm("Delete this service?");
+    if (!ok) return;
+
+    setActionLoading(true);
+    try {
+      const result = await deleteService(activeServiceId);
+      if (result?.success) {
+        await fetchServices();
+        closeEditService();
+      }
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -201,6 +257,8 @@ function Services() {
                     <input
                       type="text"
                       placeholder="Enter title of the service"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
                       className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-slate-300 focus:outline-none"
                     />
                   </div>
@@ -210,15 +268,39 @@ function Services() {
                     <input
                       type="text"
                       placeholder="Enter your service Description"
+                      value={newDescription}
+                      onChange={(e) => setNewDescription(e.target.value)}
                       className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-slate-300 focus:outline-none"
                     />
                   </div>
 
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600">Service Image URL (optional)</label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-slate-300 focus:outline-none"
+                    />
+                  </div>
+
+                  {error ? (
+                    <div className="rounded-md bg-red-50 p-4">
+                      <div className="text-sm text-red-700">{error}</div>
+                    </div>
+                  ) : null}
+
                   <div className="flex justify-end">
-                    <button type="button" className="w-full rounded-full bg-[#1f4f64] p-[2px] shadow-sm">
+                    <button
+                      type="button"
+                      onClick={handleCreate}
+                      disabled={actionLoading || !newTitle.trim() || !newDescription.trim()}
+                      className="w-full rounded-full bg-[#1f4f64] p-[2px] shadow-sm disabled:opacity-60"
+                    >
                       <span className="flex w-full items-stretch overflow-hidden rounded-full bg-[#2c6480]">
                         <span className="flex-1 py-4 text-center text-base font-semibold text-white">
-                          Upload Services
+                          {actionLoading ? "Uploading..." : "Upload Services"}
                         </span>
                         <span className="grid w-16 place-items-center bg-[#7ac943] text-2xl font-semibold text-[#2c6480]">
                           ›
@@ -231,19 +313,19 @@ function Services() {
             </section>
 
             <div className="mt-10 flex items-baseline gap-3 text-slate-700">
-              <span className="text-4xl font-semibold tracking-tight">{servicesMock.length}</span>
+              <span className="text-4xl font-semibold tracking-tight">{services.length}</span>
               <span className="text-xl">Services</span>
             </div>
 
             <section className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {servicesMock.map((svc) => (
+              {services.map((svc) => (
                 <article
                   key={svc.id}
                   className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                 >
                   <div className="bg-slate-100">
                     <img
-                      src={SERVICE_IMAGE_URL}
+                      src={svc.image || SERVICE_IMAGE_URL}
                       alt={svc.title}
                       className="aspect-[4/3] w-full object-cover"
                       loading="lazy"
@@ -312,7 +394,7 @@ function Services() {
                       >
                         <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
                           <img
-                            src={(editImages[0] ?? SERVICE_IMAGE_URL)}
+                            src={(editImages[0] ?? editDraft.image ?? SERVICE_IMAGE_URL)}
                             alt=""
                             className="h-[180px] w-full object-cover"
                             loading="lazy"
@@ -329,6 +411,7 @@ function Services() {
                                 });
                                 return [];
                               });
+                              setEditDraft((prev) => ({ ...(prev ?? {}), image: null }));
                             }}
                             className="absolute right-3 top-3 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-sm font-semibold text-slate-600 shadow"
                             aria-label="Remove image"
@@ -384,12 +467,36 @@ function Services() {
                             className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                           />
                         </div>
+
+                        <div>
+                          <label className="text-sm font-semibold text-slate-600">Service Image URL (optional)</label>
+                          <input
+                            type="url"
+                            value={editDraft.image ?? ""}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              setEditDraft((prev) => ({
+                                ...prev,
+                                image: normalizeRemoteImage(next.trim()),
+                              }));
+                              setEditImages((prev) => {
+                                prev.forEach((src) => {
+                                  if (typeof src === "string" && src.startsWith("blob:")) URL.revokeObjectURL(src);
+                                });
+                                return [];
+                              });
+                            }}
+                            placeholder="https://example.com/image.jpg"
+                            className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
+                          />
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between gap-4 border-t border-slate-100 px-10 py-8">
                       <button
                         type="button"
+                        onClick={handleDelete}
                         className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700"
                       >
                         Delete Service
@@ -406,9 +513,11 @@ function Services() {
 
                       <button
                         type="button"
+                        onClick={handleSave}
+                        disabled={actionLoading}
                         className="rounded-full bg-[#2c6480] px-10 py-3 text-sm font-semibold text-white"
                       >
-                        Save Changes
+                        {actionLoading ? "Saving..." : "Save Changes"}
                       </button>
                     </div>
                   </div>

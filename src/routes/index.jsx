@@ -4,9 +4,14 @@ import Layout from "../Layout"
 import Home from "../pages/Home"
 import Projects from "../pages/Projects"
 import Services from "../pages/Services"
+import Login from "../pages/Login"
 
 
 let router = createBrowserRouter([
+  {
+    path: "/Login",
+    Component: Login,
+  },
   {
     path: "/",
     Component: Layout,
@@ -26,7 +31,7 @@ let router = createBrowserRouter([
       {
         path: "/Services",
         Component: Services,
-      }
+      },
     ],
   }
 ])

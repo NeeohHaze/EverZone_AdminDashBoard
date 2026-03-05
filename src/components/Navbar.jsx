@@ -1,5 +1,6 @@
-import React from "react";
-import { Link, useLocation } from "react-router";
+import React, { useContext } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { AuthContext } from "../contexts/AuthContext";
 
 const navItems = [
   { label: "Home", to: "/Home" },
@@ -9,6 +10,13 @@ const navItems = [
 
 function Navbar() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
+
+  const handleSignOut = () => {
+    logout();
+    navigate("/Login");
+  };
 
   const linkClass = (to) => {
     const isActive = pathname === to;
@@ -59,6 +67,7 @@ function Navbar() {
           <button
             type="button"
             className="flex items-center gap-2 rounded-full border border-black/10 px-3 py-1.5 text-slate-700 transition hover:border-black/20 hover:text-slate-900"
+            onClick={handleSignOut}
           >
             <svg
               aria-hidden="true"
