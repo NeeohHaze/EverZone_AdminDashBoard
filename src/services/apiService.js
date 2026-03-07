@@ -27,7 +27,9 @@ class ApiService {
         }
 
         const hasBody = options.body !== undefined;
-        if (hasBody && !headers['Content-Type']) {
+        
+        // Only set Content-Type for non-FormData requests
+        if (hasBody && !headers['Content-Type'] && !(options.body instanceof FormData)) {
             headers['Content-Type'] = 'application/json';
         }
 
@@ -100,14 +102,14 @@ class ApiService {
     createService(service) {
         return this.request('/api/admin/services', {
             method: 'POST',
-            body: JSON.stringify(service)
+            body: service instanceof FormData ? service : JSON.stringify(service)
         }, { auth: true });
     }
 
     updateService(id, service) {
         return this.request(`/api/admin/services/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(service)
+            body: service instanceof FormData ? service : JSON.stringify(service)
         }, { auth: true });
     }
 
@@ -120,14 +122,14 @@ class ApiService {
     createProject(project) {
         return this.request('/api/admin/projects', {
             method: 'POST',
-            body: JSON.stringify(project)
+            body: project instanceof FormData ? project : JSON.stringify(project)
         }, { auth: true });
     }
 
     updateProject(id, project) {
         return this.request(`/api/admin/projects/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(project)
+            body: project instanceof FormData ? project : JSON.stringify(project)
         }, { auth: true });
     }
 

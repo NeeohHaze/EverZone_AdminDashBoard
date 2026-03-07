@@ -38,9 +38,6 @@ function Login() {
       }
 
       const token = result?.data?.token;
-      if (token) {
-        console.log('Access token:', token);
-      }
 
       const admin = result?.data?.admin;
       const isSuperAdmin = admin?.role === 'superadmin';

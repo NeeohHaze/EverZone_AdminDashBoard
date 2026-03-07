@@ -28,6 +28,7 @@ function Projects() {
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [editImages, setEditImages] = useState([]);
+  const [editImageFile, setEditImageFile] = useState(null);
 
   const [newDraft, setNewDraft] = useState({
     title: "",
@@ -151,6 +152,7 @@ function Projects() {
   const closeEditProject = () => {
     setActiveProjectId(null);
     setEditDraft(null);
+    setEditImageFile(null);
     setEditImages([]);
   };
 
@@ -177,6 +179,9 @@ function Projects() {
   const addEditImages = (fileList) => {
     const nextFiles = Array.from(fileList ?? []).filter((f) => f && f.type?.startsWith("image/"));
     if (nextFiles.length === 0) return;
+
+    // Store the first file for uploading
+    setEditImageFile(nextFiles[0]);
 
     const urls = nextFiles.map((f) => URL.createObjectURL(f));
     setEditImages((prev) => {
@@ -222,16 +227,23 @@ function Projects() {
 
     setActionLoading(true);
     try {
-      const result = await createProject({
-        name: newDraft.name.trim(),
-        title: newDraft.title.trim(),
-        category_id: categoryId,
-        location: newDraft.location.trim() || null,
-        duration: newDraft.duration.trim() || null,
-        area: newDraft.area.trim() || null,
-        description: newDraft.description.trim(),
-        image: normalizeRemoteImage(newDraft.image.trim()),
-      });
+      const formData = new FormData();
+      formData.append('name', newDraft.name.trim());
+      formData.append('title', newDraft.title.trim());
+      formData.append('category_id', categoryId);
+      formData.append('location', newDraft.location.trim() || '');
+      formData.append('duration', newDraft.duration.trim() || '');
+      formData.append('area', newDraft.area.trim() || '');
+      formData.append('description', newDraft.description.trim());
+      
+      // Add file if one was selected, otherwise add URL
+      if (files.length > 0) {
+        formData.append('image', files[0]);
+      } else if (newDraft.image.trim()) {
+        formData.append('image', newDraft.image.trim());
+      }
+
+      const result = await createProject(formData);
 
       if (result?.success) {
         resetCreateForm();
@@ -249,16 +261,23 @@ function Projects() {
 
     setActionLoading(true);
     try {
-      const result = await updateProject(activeProjectId, {
-        name: (editDraft.name ?? "").trim(),
-        title: (editDraft.title ?? "").trim(),
-        category_id: categoryId,
-        location: (editDraft.location ?? "").trim() || null,
-        duration: (editDraft.duration ?? "").trim() || null,
-        area: (editDraft.area ?? "").trim() || null,
-        description: (editDraft.description ?? "").trim(),
-        image: normalizeRemoteImage((editDraft.image ?? "").trim()),
-      });
+      const formData = new FormData();
+      formData.append('name', (editDraft.name ?? "").trim());
+      formData.append('title', (editDraft.title ?? "").trim());
+      formData.append('category_id', categoryId);
+      formData.append('location', (editDraft.location ?? "").trim() || '');
+      formData.append('duration', (editDraft.duration ?? "").trim() || '');
+      formData.append('area', (editDraft.area ?? "").trim() || '');
+      formData.append('description', (editDraft.description ?? "").trim());
+      
+      // Add file if one was selected, otherwise add existing image
+      if (editImageFile) {
+        formData.append('image', editImageFile);
+      } else if (editDraft.image) {
+        formData.append('image', (editDraft.image ?? "").trim());
+      }
+
+      const result = await updateProject(activeProjectId, formData);
 
       if (result?.success) {
         await fetchProjects();

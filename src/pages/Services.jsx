@@ -30,6 +30,7 @@ function Services() {
   const [activeServiceId, setActiveServiceId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [editImages, setEditImages] = useState([]);
+  const [editImageFile, setEditImageFile] = useState(null);
 
   const {
     services,
@@ -70,7 +71,9 @@ function Services() {
     const nextFiles = Array.from(fileList ?? []).filter((f) => f && f.type?.startsWith("image/"));
     if (nextFiles.length === 0) return;
 
-    const url = URL.createObjectURL(nextFiles[0]);
+    const file = nextFiles[0];
+    const url = URL.createObjectURL(file);
+    setEditImageFile(file);
     setEditImages((prev) => {
       prev.forEach((src) => {
         if (typeof src === "string" && src.startsWith("blob:")) URL.revokeObjectURL(src);
@@ -96,6 +99,7 @@ function Services() {
   const closeEditService = () => {
     setActiveServiceId(null);
     setEditDraft(null);
+    setEditImageFile(null);
     setEditImages((prev) => {
       prev.forEach((src) => {
         if (typeof src === "string" && src.startsWith("blob:")) URL.revokeObjectURL(src);
@@ -138,11 +142,18 @@ function Services() {
 
     setActionLoading(true);
     try {
-      const result = await createService({
-        title,
-        description,
-        image: normalizeRemoteImage(newImageUrl.trim()),
-      });
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      
+      // Add file if one was selected, otherwise add URL
+      if (files.length > 0) {
+        formData.append('image', files[0]);
+      } else if (newImageUrl.trim()) {
+        formData.append('image', newImageUrl.trim());
+      }
+
+      const result = await createService(formData);
 
       if (result?.success) {
         resetCreateForm();
@@ -161,11 +172,18 @@ function Services() {
 
     setActionLoading(true);
     try {
-      const result = await updateService(activeServiceId, {
-        title,
-        description,
-        image: editDraft.image ?? null,
-      });
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      
+      // Add file if one was selected, otherwise add existing image
+      if (editImageFile) {
+        formData.append('image', editImageFile);
+      } else if (editDraft.image) {
+        formData.append('image', editDraft.image);
+      }
+
+      const result = await updateService(activeServiceId, formData);
 
       if (result?.success) {
         await fetchServices();
