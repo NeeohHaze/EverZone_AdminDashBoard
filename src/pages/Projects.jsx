@@ -306,10 +306,12 @@ function Projects() {
   };
 
   return (
-    <div className="relative left-1/2 right-1/2 w-screen -ml-[50vw] -mr-[50vw] min-h-screen bg-[#2c6480] py-8">
-      <div className="mx-auto w-full max-w-[1600px] px-2 sm:px-4 lg:px-6">
-        <div className="w-full overflow-hidden rounded-[44px] bg-white shadow-sm">
-          <div className="mx-auto w-full max-w-7xl px-6 py-10 sm:px-10">
+    <div className="relative left-1/2 right-1/2 w-screen -ml-[50vw] -mr-[50vw] min-h-screen bg-white pb-8">
+      <div aria-hidden="true" className="h-[54px] w-full bg-[#2c6480]" />
+
+      <div className="relative z-10 mx-auto -mt-6 w-full">
+        <div className="w-full overflow-hidden rounded-t-[44px] bg-white">
+          <div className="w-full px-8 py-10 sm:px-14 lg:px-20">
             <h1 className="text-3xl font-semibold text-slate-800 sm:text-4xl">
               Projects Management
             </h1>

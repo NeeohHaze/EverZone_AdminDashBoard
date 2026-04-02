@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useContactFormsData } from "../hooks/useApiData";
+import { useContactFormsData, useProjectsData, useServicesData } from "../hooks/useApiData";
 
 const monthNames = [
   "Jan",
@@ -41,6 +41,8 @@ const getStatusForReadState = (nextRead, previousStatus) => {
 
 function Home() {
   const { contactForms, loading, error, updateStatus } = useContactFormsData();
+  const { services } = useServicesData();
+  const { projects } = useProjectsData();
   const [inquiry, setInquiry] = useState([]);
   const [filter, setFilter] = useState("All");
   const [page, setPage] = useState(1);
@@ -202,13 +204,16 @@ function Home() {
   };
 
         return (
-          <div className="w-full pb-10">
+          <div className="relative left-1/2 right-1/2 w-screen -ml-[50vw] -mr-[50vw] min-h-screen bg-white pb-8">
+            <div aria-hidden="true" className="h-[54px] w-full bg-[#2c6480]" />
+
+            <div className="relative z-10 mx-auto -mt-6 w-full overflow-hidden rounded-t-[44px] bg-white px-8 pb-10 pt-10 sm:px-14 lg:px-20">
             <h1 className="text-3xl font-semibold text-slate-800">Dashboard</h1>
 
             <div className="mt-6 flex flex-wrap gap-4">
               {[
-                { label: "Services", value: 5 },
-                { label: "Projects", value: 12 },
+                { label: "Services", value: services.length },
+                { label: "Projects", value: projects.length },
               ].map((item) => (
                 <button
                   key={item.label}
@@ -547,6 +552,7 @@ function Home() {
               </div>
       ) : null}
     </div>
+  </div>
   );
 }
 
