@@ -1,6 +1,6 @@
 class ApiService {
     constructor() {
-        this.baseURL = 'https://engineering-web-2026-backend.onrender.com';
+        this.baseURL = import.meta.env.VITE_API_BASE_URL;
     }
 
     getToken() {
