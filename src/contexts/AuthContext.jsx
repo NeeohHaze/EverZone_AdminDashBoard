@@ -3,7 +3,7 @@ import axios from "axios";
 
 const AuthContext = createContext();
 
-const API_BASE_URL = "https://engineering-web-2026-backend.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://engineering-web-2026-backend-io2r.onrender.com";
 
 const AuthContextProvider = ({ children}) => {
     let [user, setUser] = useState(null);
