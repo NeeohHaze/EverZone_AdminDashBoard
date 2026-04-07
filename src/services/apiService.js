@@ -1,6 +1,13 @@
+const DEFAULT_API_HOST = 'https://engineering-web-2026-backend-io2r.onrender.com';
+
+const normalizeApiHost = (value) => {
+    const rawBaseUrl = (value || DEFAULT_API_HOST).trim().replace(/\/+$/, '');
+    return rawBaseUrl.endsWith('/api') ? rawBaseUrl.slice(0, -4) : rawBaseUrl;
+};
+
 class ApiService {
     constructor() {
-        this.baseURL = import.meta.env.VITE_API_BASE_URL;
+        this.baseURL = normalizeApiHost(import.meta.env.VITE_API_BASE_URL);
     }
 
     getToken() {
@@ -38,7 +45,7 @@ class ApiService {
             headers
         });
 
-        if (response.status === 401) {
+        if (response.status === 401 || response.status === 403) {
             this.clearAuth();
         }
 

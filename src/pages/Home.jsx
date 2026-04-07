@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useContactFormsData, useProjectsData, useServicesData } from "../hooks/useApiData";
 
+const STARRED_INQUIRIES_STORAGE_KEY = "everzone_admin_starred_inquiries";
+
 const monthNames = [
   "Jan",
   "Feb",
@@ -17,6 +19,92 @@ const monthNames = [
   "Dec",
 ];
 
+const readStarredInquiryIds = () => {
+  if (typeof window === "undefined") return new Set();
+
+  try {
+    const rawValue = window.localStorage.getItem(STARRED_INQUIRIES_STORAGE_KEY);
+    if (!rawValue) return new Set();
+    const parsed = JSON.parse(rawValue);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map((value) => String(value)));
+  } catch {
+    return new Set();
+  }
+};
+
+const writeStarredInquiryIds = (ids) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    STARRED_INQUIRIES_STORAGE_KEY,
+    JSON.stringify(Array.from(ids))
+  );
+};
+
+const StarIcon = ({ filled = false, className = "h-4 w-4" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 20 20"
+    className={className}
+    fill={filled ? "currentColor" : "none"}
+    stroke="currentColor"
+    strokeWidth={filled ? undefined : "1.7"}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m10 2.7 2.273 4.606 5.083.739-3.678 3.585.868 5.062L10 14.298 5.454 16.692l.868-5.062-3.678-3.585 5.083-.739L10 2.702Z" />
+  </svg>
+);
+
+const SearchIcon = ({ className = "h-4 w-4" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </svg>
+);
+
+const CalendarIcon = ({ className = "h-4 w-4" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M8 3v3" />
+    <path d="M16 3v3" />
+    <path d="M4 9h16" />
+    <rect x="4" y="5" width="16" height="15" rx="2" />
+  </svg>
+);
+
+const ChevronDownIcon = ({ className = "h-4 w-4" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
 const normalizeContactForm = (form) => {
   const status = String(form?.status ?? "pending").toLowerCase();
 
@@ -28,6 +116,7 @@ const normalizeContactForm = (form) => {
     subject: form.subject?.trim() || `Inquiry from ${form.name ?? "Unknown"}`,
     message: form.message ?? "",
     receivedAt: form.time || form.created_at || new Date().toISOString(),
+    starred: false,
     read: status !== "pending",
     status,
   };
@@ -47,21 +136,83 @@ function Home() {
   const { projects } = useProjectsData();
   const [inquiry, setInquiry] = useState([]);
   const [filter, setFilter] = useState("All");
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("all");
   const [page, setPage] = useState(1);
   const pageSize = 6;
   const [activeInquiryId, setActiveInquiryId] = useState(null);
 
   useEffect(() => {
-    setInquiry((contactForms || []).map(normalizeContactForm));
+    window.dispatchEvent(
+      new CustomEvent("everzone:navbar-visibility", {
+        detail: { hidden: activeInquiryId != null },
+      })
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("everzone:navbar-visibility", {
+          detail: { hidden: false },
+        })
+      );
+    };
+  }, [activeInquiryId]);
+
+  useEffect(() => {
+    const starredIds = readStarredInquiryIds();
+    setInquiry(
+      (contactForms || []).map((form) => {
+        const normalized = normalizeContactForm(form);
+        return {
+          ...normalized,
+          starred: starredIds.has(String(normalized.id)),
+        };
+      })
+    );
   }, [contactForms]);
 
+  const monthOptions = useMemo(() => {
+    const seen = new Set();
+
+    return inquiry
+      .map((item) => new Date(item.receivedAt))
+      .filter((date) => !Number.isNaN(date.getTime()))
+      .sort((left, right) => right.getTime() - left.getTime())
+      .map((date) => {
+        const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        const label = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+        return { value, label };
+      })
+      .filter((option) => {
+        if (seen.has(option.value)) return false;
+        seen.add(option.value);
+        return true;
+      });
+  }, [inquiry]);
+
   const filteredInquiries = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
     return inquiry.filter((item) => {
       if (filter === "Read") return item.read;
       if (filter === "Unread") return !item.read;
-      return true;
+      if (showStarredOnly && !item.starred) return false;
+      if (selectedMonth !== "all") {
+        const date = new Date(item.receivedAt);
+        const itemMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        if (itemMonth !== selectedMonth) return false;
+      }
+      if (!query) return true;
+
+      const haystack = [item.name, item.email, item.phone, item.subject, item.message]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
     });
-  }, [filter, inquiry]);
+  }, [filter, inquiry, searchQuery, selectedMonth, showStarredOnly]);
 
   const totalPages = Math.max(1, Math.ceil(filteredInquiries.length / pageSize));
 
@@ -121,6 +272,27 @@ function Home() {
   const setFilterAndResetPage = (value) => {
     setFilter(value);
     setPage(1);
+  };
+
+  const toggleStarredFilter = () => {
+    setShowStarredOnly((prev) => !prev);
+    setPage(1);
+  };
+
+  const updateStarredInquiryIds = (nextInquiry) => {
+    writeStarredInquiryIds(
+      new Set(nextInquiry.filter((item) => item.starred).map((item) => String(item.id)))
+    );
+  };
+
+  const toggleStarred = (id) => {
+    setInquiry((prev) => {
+      const nextInquiry = prev.map((item) =>
+        item.id === id ? { ...item, starred: !item.starred } : item
+      );
+      updateStarredInquiryIds(nextInquiry);
+      return nextInquiry;
+    });
   };
 
   const syncInquiryStatus = async (id, nextRead) => {
@@ -245,7 +417,7 @@ function Home() {
             </div>
 
             <section className="mt-10 rounded-xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
+              <div className="px-6 py-5">
                 <div className="flex items-center gap-3">
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-700">
                     <svg
@@ -265,30 +437,88 @@ function Home() {
                   <h2 className="text-lg font-semibold text-slate-800">Inquiries</h2>
                 </div>
 
-                <div
-                  className="flex items-center rounded-full bg-[#2c6480] p-1"
-                  role="group"
-                  aria-label="Filter inquiries"
-                >
-                  {["All", "Unread", "Read"].map((value) => {
-                    const isActive = filter === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setFilterAndResetPage(value)}
-                        aria-pressed={isActive}
-                        className={[
-                          "min-w-[72px] rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                          isActive
-                            ? "bg-[#7ac943] text-white"
-                            : "bg-[transparent] text-white/80 hover:text-white",
-                        ].join(" ")}
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={toggleStarredFilter}
+                    aria-pressed={showStarredOnly}
+                    className={[
+                      "inline-flex h-11 shrink-0 items-center gap-1 rounded-full border px-4 text-sm font-medium shadow-sm transition",
+                      showStarredOnly
+                        ? "border-transparent bg-[#8dcf22] text-[#1f2a12]"
+                        : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700",
+                    ].join(" ")}
+                  >
+                    <span>Starred</span>
+                    <StarIcon filled={showStarredOnly} className="h-4 w-4" />
+                  </button>
+
+                  <div className="flex min-w-[240px] flex-1 items-center rounded-full border border-slate-200 bg-white shadow-sm">
+                    <label className="relative min-w-0 flex-1">
+                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
+                        <SearchIcon />
+                      </span>
+                      <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setPage(1);
+                        }}
+                        placeholder="Search by name"
+                        className="h-11 w-full bg-transparent pl-11 pr-4 text-sm text-slate-700 outline-none"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex shrink-0 items-center rounded-full border border-slate-200 bg-white pr-2 shadow-sm">
+                    <label className="relative inline-flex h-11 shrink-0 items-center rounded-full px-4 text-sm font-medium text-slate-500 transition hover:text-slate-700">
+                      <CalendarIcon className="h-4 w-4" />
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => {
+                          setSelectedMonth(e.target.value);
+                          setPage(1);
+                        }}
+                        className="h-11 appearance-none bg-transparent pl-2 pr-8 text-sm font-medium text-slate-500 outline-none"
+                        aria-label="Filter inquiries by month"
                       >
-                        {value}
-                      </button>
-                    );
-                  })}
+                        <option value="all">All Time</option>
+                        {monthOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon className="pointer-events-none absolute right-4 h-4 w-4" />
+                    </label>
+                  </div>
+
+                  <div
+                    className="flex items-center rounded-full bg-[#2c6480] p-1 shadow-sm"
+                    role="group"
+                    aria-label="Filter inquiries"
+                  >
+                    {["All", "Unread", "Read"].map((value) => {
+                      const isActive = filter === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setFilterAndResetPage(value)}
+                          aria-pressed={isActive}
+                          className={[
+                            "min-w-[74px] rounded-full px-4 py-2 text-[11px] font-semibold transition",
+                            isActive
+                              ? "bg-[#8dcf22] text-[#1f2a12]"
+                              : "bg-transparent text-white/85 hover:text-white",
+                          ].join(" ")}
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -348,13 +578,22 @@ function Home() {
                             >
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
-                                  <span
+                                  <button
+                                    type="button"
+                                    aria-label={item.starred ? "Remove star" : "Star inquiry"}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleStarred(item.id);
+                                    }}
                                     className={[
-                                      "h-2.5 w-2.5 rounded-full",
-                                      item.read ? "bg-transparent" : "bg-red-500",
+                                      "grid h-7 w-7 place-items-center rounded-full transition",
+                                      item.starred
+                                        ? "text-[#7ac943]"
+                                        : "text-slate-300 hover:text-slate-500",
                                     ].join(" ")}
-                                    aria-hidden="true"
-                                  />
+                                  >
+                                    <StarIcon filled={item.starred} className="h-4 w-4" />
+                                  </button>
                                   <span className="text-sm font-semibold text-slate-900">
                                     {item.name}
                                   </span>
@@ -375,7 +614,15 @@ function Home() {
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-sm font-medium text-slate-700">
-                                {formatRelativeTime(item.receivedAt)}
+                                <div className="flex flex-col gap-1">
+                                  <span>{formatRelativeTime(item.receivedAt)}</span>
+                                  {!item.read ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-500">
+                                      <span className="h-2.5 w-2.5 rounded-full bg-red-500" aria-hidden="true" />
+                                      <span>Unread</span>
+                                    </span>
+                                  ) : null}
+                                </div>
                               </td>
                               <td className="px-4 py-4">
                                 <button
@@ -473,7 +720,7 @@ function Home() {
             </section>
 
             {activeInquiry ? (
-              <div className="fixed inset-0 z-50">
+              <div className="fixed inset-0 z-[80]">
                 <button
                   type="button"
                   className="absolute inset-0 bg-black/40"
@@ -549,6 +796,14 @@ function Home() {
                       onClick={() => toggleRead(activeInquiry.id)}
                     >
                       Mark as {activeInquiry.read ? "Unread" : "Read"}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="ml-3 mt-8 border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                      onClick={() => toggleStarred(activeInquiry.id)}
+                    >
+                      {activeInquiry.starred ? "Remove Star" : "Star Inquiry"}
                     </button>
                   </div>
                 </aside>

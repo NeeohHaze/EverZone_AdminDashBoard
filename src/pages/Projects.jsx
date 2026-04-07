@@ -19,16 +19,69 @@ const PhotoIcon = ({ className = "h-5 w-5" }) => (
   </svg>
 );
 
+const TrashIcon = ({ className = "h-5 w-5" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 7h16" />
+    <path d="M10 11v7" />
+    <path d="M14 11v7" />
+    <path d="M6 7l1 14h10l1-14" />
+    <path d="M9 7V4h6v3" />
+  </svg>
+);
+
+const SearchIcon = ({ className = "h-5 w-5" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </svg>
+);
+
 function Projects() {
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
   const [files, setFiles] = useState([]);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [activeProjectId, setActiveProjectId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [editImages, setEditImages] = useState([]);
   const [editImageFile, setEditImageFile] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("everzone:navbar-visibility", {
+        detail: { hidden: activeProjectId != null },
+      })
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("everzone:navbar-visibility", {
+          detail: { hidden: false },
+        })
+      );
+    };
+  }, [activeProjectId]);
 
   const [newDraft, setNewDraft] = useState({
     title: "",
@@ -115,9 +168,18 @@ function Projects() {
   }, [categories]);
 
   const showcaseProjects = useMemo(() => {
-    if (activeCategory === "All") return projects;
-    return (projects ?? []).filter((p) => p?.category_name === activeCategory);
-  }, [activeCategory, projects]);
+    const query = searchQuery.trim().toLowerCase();
+
+    return (projects ?? []).filter((project) => {
+      if (activeCategory !== "All" && project?.category_name !== activeCategory) {
+        return false;
+      }
+
+      if (!query) return true;
+
+      return String(project?.name ?? "").toLowerCase().includes(query);
+    });
+  }, [activeCategory, projects, searchQuery]);
 
   const fileSummary = useMemo(() => {
     if (files.length === 0) return "";
@@ -153,6 +215,7 @@ function Projects() {
     setActiveProjectId(null);
     setEditDraft(null);
     setEditImageFile(null);
+    setShowDeleteModal(false);
     setEditImages([]);
   };
 
@@ -290,8 +353,6 @@ function Projects() {
 
   const handleDelete = async () => {
     if (!activeProjectId) return;
-    const ok = window.confirm("Delete this project?");
-    if (!ok) return;
 
     setActionLoading(true);
     try {
@@ -325,32 +386,41 @@ function Projects() {
             {/* Left: form fields */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-semibold text-slate-600">Project title</label>
+                <label className="text-sm font-semibold text-slate-600">
+                  Project title <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Enter title of the project"
                   value={newDraft.title}
                   onChange={(e) => setNewDraft((prev) => ({ ...prev, title: e.target.value }))}
+                  required
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-600">Owner Name</label>
+                <label className="text-sm font-semibold text-slate-600">
+                  Owner Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Enter owner's name"
                   value={newDraft.name}
                   onChange={(e) => setNewDraft((prev) => ({ ...prev, name: e.target.value }))}
+                  required
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-slate-600">Category</label>
+                <label className="text-sm font-semibold text-slate-600">
+                  Category <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={newDraft.category_id}
                   onChange={(e) => setNewDraft((prev) => ({ ...prev, category_id: e.target.value }))}
+                  required
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 >
                   {(categories ?? []).length ? (
@@ -399,12 +469,15 @@ function Projects() {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="text-sm font-semibold text-slate-600">Description</label>
+                <label className="text-sm font-semibold text-slate-600">
+                  Description <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   rows={4}
                   placeholder="Enter description of the project"
                   value={newDraft.description}
                   onChange={(e) => setNewDraft((prev) => ({ ...prev, description: e.target.value }))}
+                  required
                   className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-base text-slate-700 focus:border-slate-300 focus:outline-none"
                 />
               </div>
@@ -476,9 +549,9 @@ function Projects() {
                 type="button"
                 onClick={handleCreate}
                 disabled={actionLoading || !canCreate || !(categories ?? []).length}
-                className="flex w-full items-stretch overflow-hidden rounded-full border border-[#1f4f64] bg-[#2c6480] shadow-sm"
+                className="group flex w-full items-stretch overflow-hidden rounded-full border border-[#1f4f64] bg-[#2c6480] shadow-sm transition hover:bg-[#2a5f79] disabled:cursor-not-allowed disabled:opacity-60 disabled:pointer-events-none"
               >
-                <span className="flex-1 py-4 text-center text-base font-semibold text-white">
+                <span className="flex-1 py-4 text-center text-base font-semibold text-white transition group-hover:text-[#8dcf22]">
                   {actionLoading ? "Uploading..." : "Upload Project"}
                 </span>
               </button>
@@ -490,10 +563,33 @@ function Projects() {
             <section className="mt-10">
               <div className="flex items-baseline gap-3 text-slate-700">
                 <span className="text-4xl font-semibold tracking-tight">{projects.length}</span>
-                <span className="text-xl">Projects</span>
+                <span className="text-[22px] font-normal text-slate-500">Projects</span>
               </div>
 
-              <div className="mt-6 flex flex-wrap gap-4">
+              <div className="mt-6 flex flex-col gap-4 xl:flex-row xl:flex-nowrap xl:items-center xl:gap-5">
+                <label className="flex h-[42px] w-full items-center rounded-full border border-slate-300 bg-white px-4 text-slate-400 shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:w-[700px] xl:flex-none">
+                  <SearchIcon className="h-5 w-5 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search Project by name"
+                    className="w-full bg-transparent px-3 text-[15px] text-slate-600 placeholder:text-slate-400 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className={[
+                      "text-[18px] leading-none text-slate-400 transition hover:text-slate-600",
+                      searchQuery ? "opacity-100" : "pointer-events-none opacity-0",
+                    ].join(" ")}
+                    aria-label="Clear project search"
+                  >
+                    X
+                  </button>
+                </label>
+
+                <div className="flex flex-wrap gap-4 xl:flex-none">
                 {categoryTabs.map((tab) => {
                   const active = tab === activeCategory;
                   return (
@@ -503,14 +599,15 @@ function Projects() {
                       onClick={() => setActiveCategory(tab)}
                       className={
                         active
-                          ? "rounded-full bg-[#7ac943] px-8 py-3 text-sm font-semibold text-slate-900"
-                          : "rounded-full border border-slate-200 bg-white px-8 py-3 text-sm font-medium text-slate-600"
+                          ? "rounded-full bg-[#8fd11f] px-8 py-3 text-sm font-semibold text-slate-900 shadow-[0_4px_12px_rgba(143,209,31,0.18)]"
+                          : "rounded-full border border-slate-300 bg-white px-8 py-3 text-sm font-medium text-slate-500"
                       }
                     >
                       {tab}
                     </button>
                   );
                 })}
+                </div>
               </div>
 
               <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -548,7 +645,7 @@ function Projects() {
             </section>
 
             {activeProject && editDraft ? (
-              <div className="fixed inset-0 z-50">
+              <div className="fixed inset-0 z-[80]">
                 <button
                   type="button"
                   className="absolute inset-0 bg-black/40"
@@ -756,25 +853,12 @@ function Projects() {
                     <div className="flex items-center justify-between gap-4 border-t border-slate-100 px-10 py-8">
                       <button
                         type="button"
-                        className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700"
-                        onClick={handleDelete}
+                        className="inline-flex items-center gap-3 rounded-full border border-[#ff7f79] bg-[#fff3f2] px-6 py-3 text-sm font-semibold text-[#ff6b63] transition hover:bg-[#ffe8e5] disabled:pointer-events-none disabled:opacity-60"
+                        onClick={() => setShowDeleteModal(true)}
+                        disabled={actionLoading}
                       >
+                        <TrashIcon className="h-5 w-5" />
                         Delete Project
-                        <span className="text-slate-400" aria-hidden="true">
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            className="h-5 w-5"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v7" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 11v7" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 7l1 14h10l1-14" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 7V4h6v3" />
-                          </svg>
-                        </span>
                       </button>
 
                       <button
@@ -788,6 +872,48 @@ function Projects() {
                     </div>
                   </div>
                 </aside>
+
+                {showDeleteModal ? (
+                  <div className="absolute inset-0 z-[90] flex items-center justify-center bg-black/85 px-4">
+                    <button
+                      type="button"
+                      className="absolute inset-0"
+                      aria-label="Close delete confirmation"
+                      onClick={() => setShowDeleteModal(false)}
+                    />
+
+                    <div className="relative w-full max-w-[424px] rounded-2xl bg-white px-10 py-9 shadow-2xl">
+                      <h2 className="text-[30px] font-semibold tracking-tight text-slate-700">
+                        Confirm Delete
+                      </h2>
+
+                      <div className="mt-9 space-y-2 text-[17px] leading-8 text-slate-500">
+                        <p>Are you sure you want to delete this?</p>
+                        <p>This cannot be undone.</p>
+                      </div>
+
+                      <div className="mt-10 flex items-center justify-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteModal(false)}
+                          className="min-w-[142px] rounded-full border border-slate-200 bg-white px-8 py-4 text-[17px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDelete}
+                          disabled={actionLoading}
+                          className="inline-flex min-w-[142px] items-center justify-center gap-2 rounded-full border border-[#ff7f79] bg-[#fff3f2] px-8 py-4 text-[17px] font-semibold text-[#ff6b63] transition hover:bg-[#ffe8e5] disabled:pointer-events-none disabled:opacity-60"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                          {actionLoading ? "Deleting..." : "Yes"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>

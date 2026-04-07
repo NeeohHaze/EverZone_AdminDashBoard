@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServicesData } from "../hooks/useApiData";
 
 const PhotoIcon = ({ className = "h-5 w-5" }) => (
@@ -19,6 +19,41 @@ const PhotoIcon = ({ className = "h-5 w-5" }) => (
   </svg>
 );
 
+const TrashIcon = ({ className = "h-5 w-5" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M4 7h16" />
+    <path d="M10 11v7" />
+    <path d="M14 11v7" />
+    <path d="M6 7l1 14h10l1-14" />
+    <path d="M9 7V4h6v3" />
+  </svg>
+);
+
+const SearchIcon = ({ className = "h-5 w-5" }) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </svg>
+);
+
 function Services() {
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
@@ -26,11 +61,29 @@ function Services() {
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [activeServiceId, setActiveServiceId] = useState(null);
   const [editDraft, setEditDraft] = useState(null);
   const [editImages, setEditImages] = useState([]);
   const [editImageFile, setEditImageFile] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("everzone:navbar-visibility", {
+        detail: { hidden: activeServiceId != null },
+      })
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("everzone:navbar-visibility", {
+          detail: { hidden: false },
+        })
+      );
+    };
+  }, [activeServiceId]);
 
   const {
     services,
@@ -96,10 +149,25 @@ function Services() {
     return services.find((s) => s.id === activeServiceId) ?? null;
   }, [activeServiceId, services]);
 
+  const filteredServices = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return services;
+
+    return services.filter((service) => {
+      const haystack = [service?.title, service?.description]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [searchQuery, services]);
+
   const closeEditService = () => {
     setActiveServiceId(null);
     setEditDraft(null);
     setEditImageFile(null);
+    setShowDeleteModal(false);
     setEditImages((prev) => {
       prev.forEach((src) => {
         if (typeof src === "string" && src.startsWith("blob:")) URL.revokeObjectURL(src);
@@ -196,8 +264,6 @@ function Services() {
 
   const handleDelete = async () => {
     if (!activeServiceId) return;
-    const ok = window.confirm("Delete this service?");
-    if (!ok) return;
 
     setActionLoading(true);
     try {
@@ -273,23 +339,29 @@ function Services() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-slate-600">Service Title</label>
+                    <label className="text-xs font-semibold text-slate-600">
+                      Service Title <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       placeholder="Enter title of the service"
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
+                      required
                       className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-slate-300 focus:outline-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-600">Service Description</label>
+                    <label className="text-xs font-semibold text-slate-600">
+                      Service Description <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       placeholder="Enter your service Description"
                       value={newDescription}
                       onChange={(e) => setNewDescription(e.target.value)}
+                      required
                       className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 focus:border-slate-300 focus:outline-none"
                     />
                   </div>
@@ -311,15 +383,15 @@ function Services() {
                     </div>
                   ) : null}
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-center lg:justify-end">
                     <button
                       type="button"
                       onClick={handleCreate}
                       disabled={actionLoading || !newTitle.trim() || !newDescription.trim()}
-                      className="w-full rounded-full bg-[#1f4f64] p-[2px] shadow-sm disabled:opacity-60"
+                      className="group w-full max-w-[540px] rounded-full bg-[#1f4f64] p-[2px] shadow-sm transition hover:bg-[#234f66] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <span className="flex w-full items-stretch overflow-hidden rounded-full bg-[#2c6480]">
-                        <span className="flex-1 py-4 text-center text-base font-semibold text-white">
+                      <span className="flex w-full items-stretch overflow-hidden rounded-full bg-[#2c6480] transition group-hover:bg-[#2a5f79]">
+                        <span className="flex-1 py-4 text-center text-base font-semibold text-white transition group-hover:text-[#8dcf22]">
                           {actionLoading ? "Uploading..." : "Upload Service"}
                         </span>                     
                       </span>
@@ -331,11 +403,35 @@ function Services() {
 
             <div className="mt-10 flex items-baseline gap-3 text-slate-700">
               <span className="text-4xl font-semibold tracking-tight">{services.length}</span>
-              <span className="text-xl">Services</span>
+              <span className="text-[22px] font-normal text-slate-500">Services</span>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-4 xl:flex-row xl:flex-nowrap xl:items-center xl:gap-5">
+              <label className="flex h-[42px] w-full items-center rounded-full border border-slate-300 bg-white px-4 text-slate-400 shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:w-[700px] xl:flex-none">
+                <SearchIcon className="h-5 w-5 shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search Service by name"
+                  className="w-full bg-transparent px-3 text-[15px] text-slate-600 placeholder:text-slate-400 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className={[
+                    "text-[18px] leading-none text-slate-400 transition hover:text-slate-600",
+                    searchQuery ? "opacity-100" : "pointer-events-none opacity-0",
+                  ].join(" ")}
+                  aria-label="Clear service search"
+                >
+                  X
+                </button>
+              </label>
             </div>
 
             <section className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {services.map((svc) => (
+              {filteredServices.map((svc) => (
                 <article
                   key={svc.id}
                   className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
@@ -371,7 +467,7 @@ function Services() {
             </section>
 
             {activeService && editDraft ? (
-              <div className="fixed inset-0 z-50">
+              <div className="fixed inset-0 z-[80]">
                 <button
                   type="button"
                   className="absolute inset-0 bg-black/40"
@@ -513,19 +609,12 @@ function Services() {
                     <div className="flex items-center justify-between gap-4 border-t border-slate-100 px-10 py-8">
                       <button
                         type="button"
-                        onClick={handleDelete}
-                        className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700"
+                        onClick={() => setShowDeleteModal(true)}
+                        disabled={actionLoading}
+                        className="inline-flex items-center gap-3 rounded-full border border-[#ff7f79] bg-[#fff3f2] px-6 py-3 text-sm font-semibold text-[#ff6b63] transition hover:bg-[#ffe8e5] disabled:pointer-events-none disabled:opacity-60"
                       >
+                        <TrashIcon className="h-5 w-5" />
                         Delete Service
-                        <span className="text-slate-400" aria-hidden="true">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v7" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 11v7" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 7l1 14h10l1-14" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 7V4h6v3" />
-                          </svg>
-                        </span>
                       </button>
 
                       <button
@@ -539,6 +628,48 @@ function Services() {
                     </div>
                   </div>
                 </aside>
+
+                {showDeleteModal ? (
+                  <div className="absolute inset-0 z-[90] flex items-center justify-center bg-black/85 px-4">
+                    <button
+                      type="button"
+                      className="absolute inset-0"
+                      aria-label="Close delete confirmation"
+                      onClick={() => setShowDeleteModal(false)}
+                    />
+
+                    <div className="relative w-full max-w-[424px] rounded-2xl bg-white px-10 py-9 shadow-2xl">
+                      <h2 className="text-[30px] font-semibold tracking-tight text-slate-700">
+                        Confirm Delete
+                      </h2>
+
+                      <div className="mt-9 space-y-2 text-[17px] leading-8 text-slate-500">
+                        <p>Are you sure you want to delete this?</p>
+                        <p>This cannot be undone.</p>
+                      </div>
+
+                      <div className="mt-10 flex items-center justify-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteModal(false)}
+                          className="min-w-[142px] rounded-full border border-slate-200 bg-white px-8 py-4 text-[17px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-700"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleDelete}
+                          disabled={actionLoading}
+                          className="inline-flex min-w-[142px] items-center justify-center gap-2 rounded-full border border-[#ff7f79] bg-[#fff3f2] px-8 py-4 text-[17px] font-semibold text-[#ff6b63] transition hover:bg-[#ffe8e5] disabled:pointer-events-none disabled:opacity-60"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                          {actionLoading ? "Deleting..." : "Yes"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
